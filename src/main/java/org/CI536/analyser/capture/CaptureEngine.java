@@ -55,12 +55,10 @@ public class CaptureEngine {
 
         int timeout = 50;
 
-        // Open the handle
         System.out.println("Opening handle...");
         PcapHandle handle = device.openLive(snapLen, mode, timeout);
         System.out.println("Handle opened successfully!");
 
-        // --- Your packet capture loop will go here ---
         int packetCount = 0;
         boolean scanningActive = true;
         while (scanningActive) {
