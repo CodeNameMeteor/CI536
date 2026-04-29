@@ -1,39 +1,16 @@
-package org.CI536.analyser; // Make sure this matches your project
+package org.CI536.analyser;
 
 import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
-import javafx.stage.Stage;
-import org.CI536.analyser.capture.CaptureEngine;
+import org.CI536.analyser.ui.PacketTableView;
 
-import java.net.SocketException;
+public class Main {
 
-public class Main extends Application {
+    public static void main(String[] args) {
+        System.out.println("Starting Java Network Analyzer...");
 
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-        // Create a simple label
-        Label helloLabel = new Label("Packet Analyzer Ready!");
-
-        // Add it to a basic layout
-        StackPane root = new StackPane();
-        root.getChildren().add(helloLabel);
-
-        // Create the scene (window content)
-        Scene scene = new Scene(root, 800, 600);
-
-        // Configure and show the window
-        primaryStage.setTitle("Java Packet Sniffer");
-        primaryStage.setScene(scene);
-        primaryStage.show();
-
-        CaptureEngine.startCapture();
-
-    }
-
-    static void main(String[] args) throws Exception {
-        // This launches the JavaFX application lifecycle
-        launch(args);
+        // This is the magic bridge!
+        // It tells the Java virtual machine to boot up the JavaFX environment
+        // and immediately launch your PacketTableView class.
+        Application.launch(PacketTableView.class, args);
     }
 }
