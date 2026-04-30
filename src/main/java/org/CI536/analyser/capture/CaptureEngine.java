@@ -19,6 +19,7 @@ public class CaptureEngine {
         int snapLen = 65536;
         PcapNetworkInterface.PromiscuousMode mode = PcapNetworkInterface.PromiscuousMode.PROMISCUOUS;
         int timeout = 50;
+        final long[] PacketCount = {1};
 
         System.out.println("Opening handle on: " + device.getDescription());
         handle = device.openLive(snapLen, mode, timeout);
@@ -32,12 +33,13 @@ public class CaptureEngine {
                 if (packet.contains(IpV4Packet.class)) {
                     IpV4Packet ipV4Packet = packet.get(IpV4Packet.class);
                     java.sql.Timestamp ts = handle.getTimestamp();
+                    PacketDetails details = PacketExtractor.ParseRawPacket(PacketCount[0], ipV4Packet, ts);
 
                     // Parse the packet
-                    PacketDetails details = PacketExtractor.ParseRawPacket(ipV4Packet, ts);
 
                     // PUSH TO THE JAVAFX UI QUEUE!
                     PacketTableView.packetQueue.add(details);
+                    PacketCount[0] = PacketCount[0] + 1;
                 }
             }
         };

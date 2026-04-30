@@ -37,7 +37,6 @@ public class PacketTableView extends Application {
         final Label label = new Label("Live Packet Capture");
         label.setFont(new Font("Open Sans", 20));
 
-        // --- 1. THE CONTROL BAR (ComboBox & Buttons) ---
         ComboBox<PcapNetworkInterface> deviceComboBox = new ComboBox<>();
         deviceComboBox.setPrefWidth(400);
         deviceComboBox.setPromptText("Select a Network Interface...");
@@ -50,7 +49,6 @@ public class PacketTableView extends Application {
             System.err.println("Could not load devices. Are you running as Administrator?");
         }
 
-        // Make the ComboBox text look pretty using a StringConverter
         deviceComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(PcapNetworkInterface device) {
@@ -117,12 +115,11 @@ public class PacketTableView extends Application {
             deviceComboBox.setDisable(false);
             stopButton.setDisable(true);
         });
+        TableColumn<PacketDetails, String> countCol = new TableColumn<>("No.");
+        countCol.setCellValueFactory(cellData -> new SimpleObjectProperty<>(cellData.getValue().count()).asString());
+        countCol.setPrefWidth(120);
 
-
-        // --- 3. CONFIGURE TABLE COLUMNS ---
-// --- 3. CONFIGURE TABLE COLUMNS ---
         TableColumn<PacketDetails, String> timestampCol = new TableColumn<>("Time");
-        // Modern Lambda approach: Grabs the data directly from the record method!
         timestampCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().timestamp()));
         timestampCol.setPrefWidth(120);
 
@@ -143,26 +140,22 @@ public class PacketTableView extends Application {
         lengthCol.setCellValueFactory(cellData -> new SimpleObjectProperty<>(cellData.getValue().length()));
         lengthCol.setPrefWidth(80);
 
-        table.getColumns().addAll(timestampCol, srcCol, dstCol, protocolCol, lengthCol);
+        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol);
 
 
-        // --- 4. LAYOUT ---
         final VBox vbox = new VBox(10); // 10px spacing
         vbox.setPadding(new Insets(10));
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        // Notice we added the controlBar below the label and above the table
         vbox.getChildren().addAll(label, controlBar, table);
 
         Scene scene = new Scene(vbox);
         stage.setScene(scene);
 
-        // Ensure capture stops if the user clicks the 'X' to close the window
         stage.setOnCloseRequest(event -> CaptureEngine.stopCapture());
         stage.show();
 
 
-        // --- 5. THE UI HEARTBEAT ---
         AnimationTimer timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
