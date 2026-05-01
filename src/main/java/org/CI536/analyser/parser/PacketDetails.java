@@ -1,11 +1,11 @@
 package org.CI536.analyser.parser;
 
 public record PacketDetails(
-        long count,
+        long packetNumber,
         String timestamp,
         String sourceIp,
         String destinationIp,
         String protocol,
-        int length
-) {
-}
+        int length,
+        String flags // <--- Add this new field
+) {}

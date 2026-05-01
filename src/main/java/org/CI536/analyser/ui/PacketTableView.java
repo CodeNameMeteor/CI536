@@ -55,7 +55,6 @@ public class PacketTableView extends Application {
                 if (device == null) return "";
                 String description = device.getDescription() != null ? device.getDescription() : device.getName();
 
-                // Add the IP address to the label if it has one
                 if (!device.getAddresses().isEmpty()) {
                     description += " (" + device.getAddresses().getFirst().getAddress().getHostAddress() + ")";
                 }
@@ -76,21 +75,18 @@ public class PacketTableView extends Application {
         controlBar.getChildren().addAll(deviceComboBox, startButton, stopButton);
 
 
-        // --- 2. BUTTON ACTIONS ---
+
         startButton.setOnAction(event -> {
             PcapNetworkInterface selectedDevice = deviceComboBox.getValue();
             if (selectedDevice == null) {
-                // Show a quick warning if they didn't pick anything
                 Alert alert = new Alert(Alert.AlertType.WARNING, "Please select a network interface first!");
                 alert.show();
                 return;
             }
 
-            // Clear old data from the UI
             table.getItems().clear();
             packetQueue.clear();
 
-            // Toggle button states
             startButton.setDisable(true);
             deviceComboBox.setDisable(true);
             stopButton.setDisable(false);
@@ -110,13 +106,12 @@ public class PacketTableView extends Application {
         stopButton.setOnAction(event -> {
             CaptureEngine.stopCapture();
 
-            // Reset UI buttons
             startButton.setDisable(false);
             deviceComboBox.setDisable(false);
             stopButton.setDisable(true);
         });
         TableColumn<PacketDetails, String> countCol = new TableColumn<>("No.");
-        countCol.setCellValueFactory(cellData -> new SimpleObjectProperty<>(cellData.getValue().count()).asString());
+        countCol.setCellValueFactory(cellData -> new SimpleObjectProperty<>(cellData.getValue().packetNumber()).asString());
         countCol.setPrefWidth(120);
 
         TableColumn<PacketDetails, String> timestampCol = new TableColumn<>("Time");
@@ -136,11 +131,15 @@ public class PacketTableView extends Application {
         protocolCol.setPrefWidth(100);
 
         TableColumn<PacketDetails, Integer> lengthCol = new TableColumn<>("Length");
-        // Note: SimpleObjectProperty is used here because length is an Integer, not a String
         lengthCol.setCellValueFactory(cellData -> new SimpleObjectProperty<>(cellData.getValue().length()));
         lengthCol.setPrefWidth(80);
 
-        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol);
+        TableColumn<PacketDetails, String> flagsCol = new TableColumn<>("Flags");
+        flagsCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().flags()));
+        flagsCol.setPrefWidth(120);
+
+        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol);
+
 
 
         final VBox vbox = new VBox(10); // 10px spacing
@@ -159,7 +158,6 @@ public class PacketTableView extends Application {
         AnimationTimer timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                // Batch add up to 50 packets per frame to keep UI responsive
                 int count = 0;
                 while (!packetQueue.isEmpty() && count < 50) {
                     table.getItems().add(packetQueue.poll());
