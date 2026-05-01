@@ -158,7 +158,7 @@ public class PacketTableView extends Application {
         AnimationTimer timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                int count = 0;
+                 int count = 0;
                 while (!packetQueue.isEmpty() && count < 50) {
                     table.getItems().add(packetQueue.poll());
                     count++;
