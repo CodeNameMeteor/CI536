@@ -20,6 +20,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
 import javafx.stage.FileChooser;
+
 import java.io.File;
 
 import java.util.List;
@@ -43,7 +44,6 @@ public class PacketTableView extends Application {
         deviceComboBox.setPrefWidth(400);
         deviceComboBox.setPromptText("Select a Network Interface...");
 
-        // Load the devices into the ComboBox
         try {
             List<PcapNetworkInterface> allDevs = Pcaps.findAllDevs();
             deviceComboBox.getItems().addAll(allDevs);
@@ -69,62 +69,39 @@ public class PacketTableView extends Application {
             }
         });
 
-        Button startButton = new Button("Start Capture");
-        Button stopButton = new Button("Stop Capture");
-        stopButton.setDisable(true); // Disabled until capture starts
+        Button startButton = new Button("Start");
+        Button stopButton = new Button("Stop");
 
-        HBox controlBar = new HBox(10); // 10px spacing between elements
-        controlBar.getChildren().addAll(deviceComboBox, startButton, stopButton);
+        Button saveButton = new Button("Save Capture");
+        Button loadButton = new Button("Load .pcap");
 
+        saveButton.setDisable(true); // Can't save until we capture something!
+        stopButton.setDisable(true);
 
+        Separator separator1 = new Separator(javafx.geometry.Orientation.VERTICAL);
+        Separator separator2 = new Separator(javafx.geometry.Orientation.VERTICAL);
+
+        HBox controlBar = new HBox(10);
+        controlBar.getChildren().addAll(deviceComboBox, startButton, stopButton, separator1, saveButton, loadButton);
 
         startButton.setOnAction(event -> {
             PcapNetworkInterface selectedDevice = deviceComboBox.getValue();
-            if (selectedDevice == null) {
-                Alert alert = new Alert(Alert.AlertType.WARNING, "Please select a network interface first!");
-                alert.show();
-                return;
-            }
+            if (selectedDevice == null) return;
 
-            // 1. OPEN THE SAVE DIALOG
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Save Live Capture");
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PCAP Files", "*.pcap"));
-
-            // showSaveDialog forces them to pick a folder AND type a file name!
-            File saveFile = fileChooser.showSaveDialog(stage);
-
-            // If they clicked "Cancel" on the save window, don't start the capture
-            if (saveFile == null) {
-                return;
-            }
-
-            // Clear old data from the UI
             table.getItems().clear();
             packetQueue.clear();
 
             startButton.setDisable(true);
+            saveButton.setDisable(true);
+            loadButton.setDisable(true);
             deviceComboBox.setDisable(true);
             stopButton.setDisable(false);
 
-            // 2. PASS THE FULL FILE PATH TO PCAP4J
             Thread captureThread = new Thread(() -> {
                 try {
-                    // saveFile.getAbsolutePath() will look like "C:\...\Documents\Packets\my_capture.pcap"
-                    CaptureEngine.startCapture(selectedDevice, saveFile.getAbsolutePath());
+                    CaptureEngine.startCapture(selectedDevice);
                 } catch (Exception e) {
                     e.printStackTrace();
-
-                    // Optional: Show an error in the UI if it fails in the background!
-                    javafx.application.Platform.runLater(() -> {
-                        Alert alert = new Alert(Alert.AlertType.ERROR, "Capture failed: " + e.getMessage());
-                        alert.show();
-
-                        // Reset buttons
-                        startButton.setDisable(false);
-                        deviceComboBox.setDisable(false);
-                        stopButton.setDisable(true);
-                    });
                 }
             });
             captureThread.setDaemon(true);
@@ -133,10 +110,54 @@ public class PacketTableView extends Application {
 
         stopButton.setOnAction(event -> {
             CaptureEngine.stopCapture();
-
             startButton.setDisable(false);
+
+            saveButton.setDisable(false);
+
+            loadButton.setDisable(false);
             deviceComboBox.setDisable(false);
             stopButton.setDisable(true);
+        });
+
+        saveButton.setOnAction(event -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save Capture As...");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PCAP Files", "*.pcap"));
+            File saveFile = fileChooser.showSaveDialog(stage);
+
+            if (saveFile == null) return;
+
+
+            CaptureEngine.saveCaptureToFile(saveFile);
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Capture successfully saved to: " + saveFile.getName());
+            alert.show();
+        });
+
+        loadButton.setOnAction(event -> {
+
+            FileChooser fileChooser = new FileChooser();
+
+            fileChooser.setTitle("Open PCAP File");
+
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PCAP Files", "*.pcap", "*.pcapng"));
+
+            File loadFile = fileChooser.showOpenDialog(stage);
+
+
+            if (loadFile == null) return;
+
+            table.getItems().clear();
+
+            packetQueue.clear();
+
+            Thread loadThread = new Thread(() -> {
+
+                CaptureEngine.loadOfflinePcap(loadFile.getAbsolutePath());
+
+            });
+            loadThread.setDaemon(true);
+            loadThread.start();
         });
         TableColumn<PacketDetails, String> countCol = new TableColumn<>("No.");
         countCol.setCellValueFactory(cellData -> new SimpleObjectProperty<>(cellData.getValue().packetNumber()).asString());
@@ -167,7 +188,6 @@ public class PacketTableView extends Application {
         flagsCol.setPrefWidth(120);
 
         table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol);
-
 
 
         final VBox vbox = new VBox(10); // 10px spacing

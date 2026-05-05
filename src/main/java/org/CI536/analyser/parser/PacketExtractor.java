@@ -34,10 +34,10 @@ public class PacketExtractor {
 
             flags = flags.trim().replace(" ", ", ");
             if (!flags.isEmpty()) {
-                flags = "[" + flags + "]";}
+                flags = "[" + flags + "]";
+            }
         }
-        if(packet.contains(UdpPacket.class))
-        {
+        if (packet.contains(UdpPacket.class)) {
             UdpPacket udpPacket = packet.get(UdpPacket.class);
             UdpPacket.UdpHeader udpHeader = udpPacket.getHeader();
 

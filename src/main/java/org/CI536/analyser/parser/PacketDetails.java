@@ -8,4 +8,5 @@ public record PacketDetails(
         String protocol,
         int length,
         String flags
-) {}
+) {
+}

@@ -9,41 +9,42 @@ import org.pcap4j.packet.Packet;
 
 public class CaptureEngine {
 
+    private static final long[] PacketCount = {1};
     private static PcapHandle handle;
     private static PcapDumper dumper;
-    private static final long[] PacketCount = {1};
+    private static java.io.File tempCaptureFile;
 
-    public static void startCapture(PcapNetworkInterface device, String saveFilePath) throws Exception {
+    public static void startCapture(PcapNetworkInterface device) throws Exception {
         int snapLen = 65536;
         PcapNetworkInterface.PromiscuousMode mode = PcapNetworkInterface.PromiscuousMode.PROMISCUOUS;
         int timeout = 50;
 
-        System.out.println("Opening handle on: " + device.getDescription());
         handle = device.openLive(snapLen, mode, timeout);
-        System.out.println("Handle opened successfully!");
+        PacketCount[0] = 1;
 
-        if (saveFilePath != null && !saveFilePath.isEmpty()) {
-            dumper = handle.dumpOpen(saveFilePath);
-            System.out.println("Saving capture to: " + saveFilePath);
-        }
+        tempCaptureFile = java.io.File.createTempFile("javapcap_temp", ".pcap");
+        tempCaptureFile.deleteOnExit();
 
+        dumper = handle.dumpOpen(tempCaptureFile.getAbsolutePath());
+        System.out.println("Buffering raw packets to hidden temp file...");
 
         PacketListener listener = new PacketListener() {
             @Override
             public void gotPacket(Packet packet) {
+                java.sql.Timestamp ts = handle.getTimestamp();
+
+                if (dumper != null) {
+                    try {
+                        dumper.dump(packet, ts);
+                        dumper.flush();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
                 if (packet.contains(IpV4Packet.class)) {
                     IpV4Packet ipV4Packet = packet.get(IpV4Packet.class);
-                    java.sql.Timestamp ts = handle.getTimestamp();
                     PacketDetails details = PacketExtractor.ParseRawPacket(PacketCount[0], ipV4Packet, ts);
-
-                    if (dumper != null) {
-                        try {
-                            dumper.dump(packet, ts);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-
                     PacketTableView.packetQueue.add(details);
                     PacketCount[0] = PacketCount[0] + 1;
                 }
@@ -58,11 +59,24 @@ public class CaptureEngine {
         } finally {
             System.out.println("Packet Capture Over. Closing Handle.");
             if (dumper != null && dumper.isOpen()) {
-                dumper.close();
+                dumper.close(); // IMPORTANT: Close the dumper so the temp file finishes saving!
             }
             if (handle != null && handle.isOpen()) {
                 handle.close();
             }
+        }
+    }
+
+    public static void saveCaptureToFile(java.io.File destination) {
+        if (tempCaptureFile != null && tempCaptureFile.exists()) {
+            try {
+                java.nio.file.Files.copy(tempCaptureFile.toPath(), destination.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("Capture saved successfully to: " + destination.getAbsolutePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("No capture data to save!");
         }
     }
 
@@ -76,41 +90,35 @@ public class CaptureEngine {
             }
         }
     }
+
     public static void loadOfflinePcap(String filePath) {
         try {
             System.out.println("Opening offline file: " + filePath);
-
             handle = Pcaps.openOffline(filePath);
-
-            // Reset your counter when you load a new file
             PacketCount[0] = 1;
-
-            // 1. Create the listener
             PacketListener listener = new PacketListener() {
                 @Override
                 public void gotPacket(Packet packet) {
+                    java.sql.Timestamp ts = handle.getTimestamp();
+                    if (dumper != null) {
+                        try {
+                            dumper.dump(packet, ts);
+                            dumper.flush();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
                     if (packet.contains(IpV4Packet.class)) {
                         IpV4Packet ipV4Packet = packet.get(IpV4Packet.class);
-                        java.sql.Timestamp ts = handle.getTimestamp();
-
-                        // Extract data
                         PacketDetails details = PacketExtractor.ParseRawPacket(PacketCount[0], ipV4Packet, ts);
-
-                        // Push to the UI queue
                         PacketTableView.packetQueue.add(details);
-
-                        // Increment counter
                         PacketCount[0] = PacketCount[0] + 1;
                     }
                 }
-            }; // <--- THIS is the bracket and semicolon that was missing!
-
-            // 2. Loop through the file using the listener we just closed
+            };
             System.out.println("Reading packets...");
             handle.loop(-1, listener);
-
             System.out.println("Finished reading file.");
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
