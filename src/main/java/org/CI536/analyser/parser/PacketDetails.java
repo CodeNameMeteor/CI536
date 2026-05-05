@@ -7,5 +7,5 @@ public record PacketDetails(
         String destinationIp,
         String protocol,
         int length,
-        String flags // <--- Add this new field
+        String flags
 ) {}
