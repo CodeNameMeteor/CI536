@@ -19,6 +19,8 @@ import org.pcap4j.core.Pcaps;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
+import javafx.stage.FileChooser;
+import java.io.File;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -84,6 +86,20 @@ public class PacketTableView extends Application {
                 return;
             }
 
+            // 1. OPEN THE SAVE DIALOG
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save Live Capture");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PCAP Files", "*.pcap"));
+
+            // showSaveDialog forces them to pick a folder AND type a file name!
+            File saveFile = fileChooser.showSaveDialog(stage);
+
+            // If they clicked "Cancel" on the save window, don't start the capture
+            if (saveFile == null) {
+                return;
+            }
+
+            // Clear old data from the UI
             table.getItems().clear();
             packetQueue.clear();
 
@@ -91,12 +107,24 @@ public class PacketTableView extends Application {
             deviceComboBox.setDisable(true);
             stopButton.setDisable(false);
 
-            // Launch the capture in a background thread!
+            // 2. PASS THE FULL FILE PATH TO PCAP4J
             Thread captureThread = new Thread(() -> {
                 try {
-                    CaptureEngine.startCapture(selectedDevice);
+                    // saveFile.getAbsolutePath() will look like "C:\...\Documents\Packets\my_capture.pcap"
+                    CaptureEngine.startCapture(selectedDevice, saveFile.getAbsolutePath());
                 } catch (Exception e) {
                     e.printStackTrace();
+
+                    // Optional: Show an error in the UI if it fails in the background!
+                    javafx.application.Platform.runLater(() -> {
+                        Alert alert = new Alert(Alert.AlertType.ERROR, "Capture failed: " + e.getMessage());
+                        alert.show();
+
+                        // Reset buttons
+                        startButton.setDisable(false);
+                        deviceComboBox.setDisable(false);
+                        stopButton.setDisable(true);
+                    });
                 }
             });
             captureThread.setDaemon(true);
@@ -158,7 +186,7 @@ public class PacketTableView extends Application {
         AnimationTimer timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                 int count = 0;
+                int count = 0;
                 while (!packetQueue.isEmpty() && count < 50) {
                     table.getItems().add(packetQueue.poll());
                     count++;
