@@ -193,19 +193,13 @@ public class PacketTableView extends Application {
         });
 
         loadButton.setOnAction(event -> {
-
             FileChooser fileChooser = new FileChooser();
-
             fileChooser.setTitle("Open PCAP File");
-
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PCAP Files", "*.pcap", "*.pcapng"));
-
             File loadFile = fileChooser.showOpenDialog(stage);
-
-
             if (loadFile == null) return;
 
-            table.getItems().clear();
+            masterData.clear();
 
             packetQueue.clear();
 
