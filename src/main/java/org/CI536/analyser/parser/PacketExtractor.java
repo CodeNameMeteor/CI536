@@ -74,8 +74,7 @@ public class PacketExtractor {
                     }
                 }
             }
-        }
-        else if (packet.contains(UdpPacket.class)) {
+        } else if (packet.contains(UdpPacket.class)) {
             UdpPacket udpPacket = packet.get(UdpPacket.class);
             UdpPacket.UdpHeader udpHeader = udpPacket.getHeader();
 

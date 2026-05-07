@@ -32,16 +32,19 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
-
 public class PacketTableView extends Application {
 
     public static final ConcurrentLinkedQueue<PacketDetails> packetQueue = new ConcurrentLinkedQueue<>();
     private final TableView<PacketDetails> table = new TableView<>();
 
+    public static void main(String[] args) {
+        launch(args);
+    }
+
     @Override
     public void start(Stage stage) {
         stage.setTitle("Java Network Analyzer");
-        stage.setWidth(900);
+        stage.setWidth(1200);
         stage.setHeight(600);
 
 
@@ -81,9 +84,9 @@ public class PacketTableView extends Application {
         Button stopButton = new Button("Stop");
 
         Button saveButton = new Button("Save Capture");
-        Button loadButton = new Button("Load .pcap");
+        Button loadButton = new Button("Load Capture");
 
-        CheckBox autoScroll= new CheckBox("Enable Auto Scroll");
+        CheckBox autoScroll = new CheckBox("Enable Auto Scroll");
 
         saveButton.setDisable(true);
         stopButton.setDisable(true);
@@ -92,7 +95,7 @@ public class PacketTableView extends Application {
         Separator separator2 = new Separator(javafx.geometry.Orientation.VERTICAL);
 
         HBox controlBar = new HBox(10);
-        HBox filterBar = new HBox (10);
+        HBox filterBar = new HBox(10);
 
         ObservableList<PacketDetails> masterData = FXCollections.observableArrayList();
 
@@ -102,6 +105,9 @@ public class PacketTableView extends Application {
         sortedData.comparatorProperty().bind(table.comparatorProperty());
 
         table.setItems(sortedData);
+
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
 
         TextField searchField = new TextField();
         searchField.setPromptText("Filter by IP, Protocol, or Flags...");
@@ -119,14 +125,11 @@ public class PacketTableView extends Application {
 
                 if (packet.protocol() != null && packet.protocol().toLowerCase().contains(lowerCaseFilter)) {
                     return true;
-                }
-                else if (packet.sourceIp() != null && packet.sourceIp().toLowerCase().contains(lowerCaseFilter)) {
+                } else if (packet.sourceIp() != null && packet.sourceIp().toLowerCase().contains(lowerCaseFilter)) {
                     return true;
-                }
-                else if (packet.destinationIp() != null && packet.destinationIp().toLowerCase().contains(lowerCaseFilter)) {
+                } else if (packet.destinationIp() != null && packet.destinationIp().toLowerCase().contains(lowerCaseFilter)) {
                     return true;
-                }
-                else if (packet.flags() != null && packet.flags().toLowerCase().contains(lowerCaseFilter)) {
+                } else if (packet.flags() != null && packet.flags().toLowerCase().contains(lowerCaseFilter)) {
                     return true;
                 }
 
@@ -243,7 +246,7 @@ public class PacketTableView extends Application {
         appDataCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().appData()));
         appDataCol.setPrefWidth(120);
 
-        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol,appDataCol);
+        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol, appDataCol);
 
         table.setRowFactory(tv -> new TableRow<PacketDetails>() {
             @Override
@@ -279,7 +282,7 @@ public class PacketTableView extends Application {
         vbox.setPadding(new Insets(10));
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        vbox.getChildren().addAll(label, controlBar,filterBar, table);
+        vbox.getChildren().addAll(label, controlBar, filterBar, table);
 
         Scene scene = new Scene(vbox);
         stage.setScene(scene);
@@ -299,9 +302,5 @@ public class PacketTableView extends Application {
             }
         };
         timer.start();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }
