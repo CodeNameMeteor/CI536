@@ -7,6 +7,7 @@ public record PacketDetails(
         String destinationIp,
         String protocol,
         int length,
-        String flags
+        String flags,
+        String appData
 ) {
 }

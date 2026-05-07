@@ -7,7 +7,6 @@ import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -240,8 +239,41 @@ public class PacketTableView extends Application {
         flagsCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().flags()));
         flagsCol.setPrefWidth(120);
 
-        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol);
+        TableColumn<PacketDetails, String> appDataCol = new TableColumn<>("Data");
+        appDataCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().appData()));
+        appDataCol.setPrefWidth(120);
 
+        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol,appDataCol);
+
+        table.setRowFactory(tv -> new TableRow<PacketDetails>() {
+            @Override
+            protected void updateItem(PacketDetails item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (item == null || empty) {
+                    setStyle("");
+                } else {
+
+                    String proto = item.protocol().toUpperCase();
+
+                    if (proto.contains("TCP")) {
+                        setStyle("-fx-background-color: #e7f6d5;");
+                    } else if (proto.contains("UDP")) {
+                        setStyle("-fx-background-color: #daeeff;");
+                    } else if (proto.contains("ICMP")) {
+                        setStyle("-fx-background-color: #fce0ff;");
+                    } else if (proto.contains("HTTP")) {
+                        setStyle("-fx-background-color: #FFC5D3;");
+                    } else if (proto.contains("HTTPS")) {
+                        setStyle("-fx-background-color: #E2E2E2;");
+                    } else if (proto.contains("DNS")) {
+                        setStyle("-fx-background-color: #E7E6FF;");
+                    } else {
+                        setStyle("");
+                    }
+                }
+            }
+        });
 
         final VBox vbox = new VBox(10); // 10px spacing
         vbox.setPadding(new Insets(10));
@@ -261,7 +293,6 @@ public class PacketTableView extends Application {
             public void handle(long now) {
                 int count = 0;
                 while (!packetQueue.isEmpty() && count < 50) {
-                    // CHANGED: Add to masterData instead of table.getItems()
                     masterData.add(packetQueue.poll());
                     count++;
                 }

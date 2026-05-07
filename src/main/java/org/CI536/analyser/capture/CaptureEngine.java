@@ -4,7 +4,6 @@ import org.CI536.analyser.parser.PacketDetails;
 import org.CI536.analyser.parser.PacketExtractor;
 import org.CI536.analyser.ui.PacketTableView;
 import org.pcap4j.core.*;
-import org.pcap4j.packet.IpV4Packet;
 import org.pcap4j.packet.Packet;
 
 public class CaptureEngine {
@@ -26,7 +25,7 @@ public class CaptureEngine {
         tempCaptureFile.deleteOnExit();
 
         dumper = handle.dumpOpen(tempCaptureFile.getAbsolutePath());
-        System.out.println("Buffering raw packets to hidden temp file...");
+        System.out.println("Buffering raw packets to temp file");
 
         PacketListener listener = new PacketListener() {
             @Override
@@ -42,9 +41,9 @@ public class CaptureEngine {
                     }
                 }
 
-                if (packet.contains(IpV4Packet.class)) {
-                    IpV4Packet ipV4Packet = packet.get(IpV4Packet.class);
-                    PacketDetails details = PacketExtractor.ParseRawPacket(PacketCount[0], ipV4Packet, ts);
+                PacketDetails details = PacketExtractor.ParseRawPacket(PacketCount[0], packet, ts);
+
+                if (details != null) {
                     PacketTableView.packetQueue.add(details);
                     PacketCount[0] = PacketCount[0] + 1;
                 }
@@ -59,7 +58,7 @@ public class CaptureEngine {
         } finally {
             System.out.println("Packet Capture Over. Closing Handle.");
             if (dumper != null && dumper.isOpen()) {
-                dumper.close(); // IMPORTANT: Close the dumper so the temp file finishes saving!
+                dumper.close();
             }
             if (handle != null && handle.isOpen()) {
                 handle.close();
@@ -96,29 +95,25 @@ public class CaptureEngine {
             System.out.println("Opening offline file: " + filePath);
             handle = Pcaps.openOffline(filePath);
             PacketCount[0] = 1;
+
             PacketListener listener = new PacketListener() {
                 @Override
                 public void gotPacket(Packet packet) {
                     java.sql.Timestamp ts = handle.getTimestamp();
-                    if (dumper != null) {
-                        try {
-                            dumper.dump(packet, ts);
-                            dumper.flush();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (packet.contains(IpV4Packet.class)) {
-                        IpV4Packet ipV4Packet = packet.get(IpV4Packet.class);
-                        PacketDetails details = PacketExtractor.ParseRawPacket(PacketCount[0], ipV4Packet, ts);
+
+                    PacketDetails details = PacketExtractor.ParseRawPacket(PacketCount[0], packet, ts);
+
+                    if (details != null) {
                         PacketTableView.packetQueue.add(details);
                         PacketCount[0] = PacketCount[0] + 1;
                     }
                 }
             };
+
             System.out.println("Reading packets...");
             handle.loop(-1, listener);
             System.out.println("Finished reading file.");
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
