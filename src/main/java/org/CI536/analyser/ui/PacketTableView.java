@@ -2,6 +2,8 @@ package org.CI536.analyser.ui;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
+
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -43,6 +45,7 @@ public class PacketTableView extends Application {
         stage.setWidth(900);
         stage.setHeight(600);
 
+
         final Label label = new Label("Live Packet Capture");
         label.setFont(new Font("Open Sans", 20));
 
@@ -80,6 +83,8 @@ public class PacketTableView extends Application {
 
         Button saveButton = new Button("Save Capture");
         Button loadButton = new Button("Load .pcap");
+
+        CheckBox autoScroll= new CheckBox("Enable Auto Scroll");
 
         saveButton.setDisable(true);
         stopButton.setDisable(true);
@@ -129,14 +134,19 @@ public class PacketTableView extends Application {
                 return false;
             });
         });
+        table.getItems().addListener((ListChangeListener<PacketDetails>) c -> {
+            if (autoScroll.isSelected()) {
+                table.scrollTo(table.getItems().size() - 1);
+            }
+        });
 
-        controlBar.getChildren().addAll(deviceComboBox, startButton, stopButton, separator1, saveButton, loadButton, separator2);
+        controlBar.getChildren().addAll(deviceComboBox, startButton, stopButton, separator1, saveButton, loadButton, separator2, autoScroll);
         filterBar.getChildren().addAll(searchField);
         startButton.setOnAction(event -> {
             PcapNetworkInterface selectedDevice = deviceComboBox.getValue();
             if (selectedDevice == null) return;
 
-            table.getItems().clear();
+            masterData.clear();
             packetQueue.clear();
 
             startButton.setDisable(true);
