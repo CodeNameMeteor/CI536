@@ -38,18 +38,15 @@ public class PacketExtractor {
             TcpPacket tcpPacket = packet.get(TcpPacket.class);
             TcpPacket.TcpHeader tcpHeader = tcpPacket.getHeader();
 
-            // 1. GET THE PORTS
             int srcPort = tcpHeader.getSrcPort().valueAsInt();
             int dstPort = tcpHeader.getDstPort().valueAsInt();
 
-            // 2. SMART PROTOCOL LABELING BASED ON PORTS
             if (srcPort == 443 || dstPort == 443) {
                 protocol = "HTTPS";
             } else if (srcPort == 80 || dstPort == 80) {
                 protocol = "HTTP";
             }
 
-            // 3. EXTRACT TCP FLAGS
             if (tcpHeader.getSyn()) flags += "SYN ";
             if (tcpHeader.getAck()) flags += "ACK ";
             if (tcpHeader.getPsh()) flags += "PSH ";

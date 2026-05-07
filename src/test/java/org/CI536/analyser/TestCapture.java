@@ -16,18 +16,15 @@ public class TestCapture {
         try {
             System.out.println("Starting Pcap4J Test...");
 
-            // 1. Fetch devices
             List<PcapNetworkInterface> allDevs = Pcaps.findAllDevs();
             if (allDevs == null || allDevs.isEmpty()) {
                 System.out.println("CRITICAL: No devices found. Is Npcap installed? Are you running as Administrator?");
                 return;
             }
 
-            // 2. Just grab the first active device for a quick test
             PcapNetworkInterface device = allDevs.get(1);
             System.out.println("Attempting to open: " + device.getDescription());
 
-            // 3. Open the handle
             int snapLen = 65536;
             PcapNetworkInterface.PromiscuousMode mode = PcapNetworkInterface.PromiscuousMode.PROMISCUOUS;
             int timeout = 50;
@@ -40,8 +37,7 @@ public class TestCapture {
                 try {
                     Packet packet = handle.getNextPacketEx();
 
-                    // DANGER AVOIDED: Not all packets are IPv4!
-                    // We must check if it contains IPv4 before doing anything.
+
                     if (packet.contains(IpV4Packet.class)) {
                         IpV4Packet ipV4Packet = packet.get(IpV4Packet.class);
                         String srcAddr = ipV4Packet.getHeader().getSrcAddr().getHostAddress();
@@ -51,15 +47,12 @@ public class TestCapture {
                         packetCount++;
                     }
 
-                } catch (java.util.concurrent.TimeoutException e) {
-                    // This is perfectly fine! It just means no packet arrived in the last 50ms.
-                    // The loop will just restart and wait another 50ms.
+                } catch (java.util.concurrent.TimeoutException _) {
                 } catch (java.io.EOFException e) {
                     System.out.println("Reached end of capture file.");
                     break;
                 }
             }
-            // Close it immediately since we are just testing permissions
             handle.close();
             System.out.println("Handle closed safely.");
 

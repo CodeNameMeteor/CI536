@@ -76,7 +76,7 @@ public class PacketTableView extends Application {
 
             @Override
             public PcapNetworkInterface fromString(String string) {
-                return null; // Not needed
+                return null;
             }
         });
 
@@ -99,7 +99,7 @@ public class PacketTableView extends Application {
 
         ObservableList<PacketDetails> masterData = FXCollections.observableArrayList();
 
-        FilteredList<PacketDetails> filteredData = new FilteredList<>(masterData, p -> true); // p -> true means "show everything" by default
+        FilteredList<PacketDetails> filteredData = new FilteredList<>(masterData, p -> true);
 
         SortedList<PacketDetails> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(table.comparatorProperty());
@@ -249,7 +249,6 @@ public class PacketTableView extends Application {
         table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol, appDataCol);
 
         table.setRowFactory(tv -> {
-            // 1. Create the row and override updateItem for colors
             TableRow<PacketDetails> row = new TableRow<>() {
                 @Override
                 protected void updateItem(PacketDetails item, boolean empty) {
@@ -279,7 +278,6 @@ public class PacketTableView extends Application {
                 }
             };
 
-            // 2. Build the Context Menu using the row we just created
             ContextMenu contextMenu = new ContextMenu();
 
             MenuItem copysrcIpItem = new MenuItem("Copy Source IP");
@@ -302,25 +300,22 @@ public class PacketTableView extends Application {
             MenuItem quickFilterItem = new MenuItem("Filter by this IP");
             quickFilterItem.setOnAction(event -> {
                 if (!row.isEmpty() && row.getItem() != null) {
-                    // Instantly throws the IP into your search box!
                     searchField.setText(row.getItem().sourceIp());
                 }
             });
 
             contextMenu.getItems().addAll(copysrcIpItem,copydstIpItem, quickFilterItem);
 
-            // 3. Bind the menu to the row (hides it on empty rows)
             row.contextMenuProperty().bind(
                     javafx.beans.binding.Bindings.when(row.emptyProperty())
                             .then((ContextMenu) null)
                             .otherwise(contextMenu)
             );
 
-            // 4. Finally, return the fully built row back to the TableView
             return row;
         });
 
-        final VBox vbox = new VBox(10); // 10px spacing
+        final VBox vbox = new VBox(10);
         vbox.setPadding(new Insets(10));
         VBox.setVgrow(table, Priority.ALWAYS);
 
