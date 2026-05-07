@@ -248,34 +248,76 @@ public class PacketTableView extends Application {
 
         table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol, appDataCol);
 
-        table.setRowFactory(tv -> new TableRow<PacketDetails>() {
-            @Override
-            protected void updateItem(PacketDetails item, boolean empty) {
-                super.updateItem(item, empty);
+        table.setRowFactory(tv -> {
+            // 1. Create the row and override updateItem for colors
+            TableRow<PacketDetails> row = new TableRow<>() {
+                @Override
+                protected void updateItem(PacketDetails item, boolean empty) {
+                    super.updateItem(item, empty);
 
-                if (item == null || empty) {
-                    setStyle("");
-                } else {
-
-                    String proto = item.protocol().toUpperCase();
-
-                    if (proto.contains("TCP")) {
-                        setStyle("-fx-background-color: #e7f6d5;");
-                    } else if (proto.contains("UDP")) {
-                        setStyle("-fx-background-color: #daeeff;");
-                    } else if (proto.contains("ICMP")) {
-                        setStyle("-fx-background-color: #fce0ff;");
-                    } else if (proto.contains("HTTP")) {
-                        setStyle("-fx-background-color: #FFC5D3;");
-                    } else if (proto.contains("HTTPS")) {
-                        setStyle("-fx-background-color: #E2E2E2;");
-                    } else if (proto.contains("DNS")) {
-                        setStyle("-fx-background-color: #E7E6FF;");
-                    } else {
+                    if (item == null || empty) {
                         setStyle("");
+                    } else {
+                        String proto = item.protocol().toUpperCase();
+
+                        if (proto.contains("TCP")) {
+                            setStyle("-fx-background-color: #e7f6d5;");
+                        } else if (proto.contains("UDP")) {
+                            setStyle("-fx-background-color: #daeeff;");
+                        } else if (proto.contains("ICMP")) {
+                            setStyle("-fx-background-color: #fce0ff;");
+                        } else if (proto.contains("HTTP")) {
+                            setStyle("-fx-background-color: #FFC5D3;");
+                        } else if (proto.contains("HTTPS")) {
+                            setStyle("-fx-background-color: #E2E2E2;");
+                        } else if (proto.contains("DNS")) {
+                            setStyle("-fx-background-color: #E7E6FF;");
+                        } else {
+                            setStyle("");
+                        }
                     }
                 }
-            }
+            };
+
+            // 2. Build the Context Menu using the row we just created
+            ContextMenu contextMenu = new ContextMenu();
+
+            MenuItem copysrcIpItem = new MenuItem("Copy Source IP");
+            copysrcIpItem.setOnAction(event -> {
+                if (!row.isEmpty() && row.getItem() != null) {
+                    javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+                    content.putString(row.getItem().sourceIp());
+                    javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+                }
+            });
+            MenuItem copydstIpItem = new MenuItem("Copy Destination IP");
+            copydstIpItem.setOnAction(event -> {
+                if (!row.isEmpty() && row.getItem() != null) {
+                    javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+                    content.putString(row.getItem().destinationIp());
+                    javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+                }
+            });
+
+            MenuItem quickFilterItem = new MenuItem("Filter by this IP");
+            quickFilterItem.setOnAction(event -> {
+                if (!row.isEmpty() && row.getItem() != null) {
+                    // Instantly throws the IP into your search box!
+                    searchField.setText(row.getItem().sourceIp());
+                }
+            });
+
+            contextMenu.getItems().addAll(copysrcIpItem,copydstIpItem, quickFilterItem);
+
+            // 3. Bind the menu to the row (hides it on empty rows)
+            row.contextMenuProperty().bind(
+                    javafx.beans.binding.Bindings.when(row.emptyProperty())
+                            .then((ContextMenu) null)
+                            .otherwise(contextMenu)
+            );
+
+            // 4. Finally, return the fully built row back to the TableView
+            return row;
         });
 
         final VBox vbox = new VBox(10); // 10px spacing
