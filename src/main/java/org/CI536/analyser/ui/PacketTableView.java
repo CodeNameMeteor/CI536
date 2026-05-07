@@ -43,7 +43,7 @@ public class PacketTableView extends Application {
 
     @Override
     public void start(Stage stage) {
-        stage.setTitle("Java Network Analyzer");
+        stage.setTitle("Light Sniff");
         stage.setWidth(1200);
         stage.setHeight(600);
 
