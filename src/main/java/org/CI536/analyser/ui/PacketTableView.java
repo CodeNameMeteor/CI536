@@ -12,6 +12,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import org.CI536.analyser.capture.CaptureEngine;
 import org.CI536.analyser.parser.PacketDetails;
 import org.pcap4j.core.PcapNetworkInterface;
@@ -25,6 +29,8 @@ import java.io.File;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+
 
 public class PacketTableView extends Application {
 
@@ -75,15 +81,57 @@ public class PacketTableView extends Application {
         Button saveButton = new Button("Save Capture");
         Button loadButton = new Button("Load .pcap");
 
-        saveButton.setDisable(true); // Can't save until we capture something!
+        saveButton.setDisable(true);
         stopButton.setDisable(true);
 
         Separator separator1 = new Separator(javafx.geometry.Orientation.VERTICAL);
         Separator separator2 = new Separator(javafx.geometry.Orientation.VERTICAL);
 
         HBox controlBar = new HBox(10);
-        controlBar.getChildren().addAll(deviceComboBox, startButton, stopButton, separator1, saveButton, loadButton);
+        HBox filterBar = new HBox (10);
 
+        ObservableList<PacketDetails> masterData = FXCollections.observableArrayList();
+
+        FilteredList<PacketDetails> filteredData = new FilteredList<>(masterData, p -> true); // p -> true means "show everything" by default
+
+        SortedList<PacketDetails> sortedData = new SortedList<>(filteredData);
+        sortedData.comparatorProperty().bind(table.comparatorProperty());
+
+        table.setItems(sortedData);
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Filter by IP, Protocol, or Flags...");
+        searchField.setPrefWidth(500);
+
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> {
+
+            filteredData.setPredicate(packet -> {
+
+                if (newValue == null || newValue.isEmpty()) {
+                    return true;
+                }
+
+                String lowerCaseFilter = newValue.toLowerCase();
+
+                if (packet.protocol() != null && packet.protocol().toLowerCase().contains(lowerCaseFilter)) {
+                    return true;
+                }
+                else if (packet.sourceIp() != null && packet.sourceIp().toLowerCase().contains(lowerCaseFilter)) {
+                    return true;
+                }
+                else if (packet.destinationIp() != null && packet.destinationIp().toLowerCase().contains(lowerCaseFilter)) {
+                    return true;
+                }
+                else if (packet.flags() != null && packet.flags().toLowerCase().contains(lowerCaseFilter)) {
+                    return true;
+                }
+
+                return false;
+            });
+        });
+
+        controlBar.getChildren().addAll(deviceComboBox, startButton, stopButton, separator1, saveButton, loadButton, separator2);
+        filterBar.getChildren().addAll(searchField);
         startButton.setOnAction(event -> {
             PcapNetworkInterface selectedDevice = deviceComboBox.getValue();
             if (selectedDevice == null) return;
@@ -159,6 +207,7 @@ public class PacketTableView extends Application {
             loadThread.setDaemon(true);
             loadThread.start();
         });
+
         TableColumn<PacketDetails, String> countCol = new TableColumn<>("No.");
         countCol.setCellValueFactory(cellData -> new SimpleObjectProperty<>(cellData.getValue().packetNumber()).asString());
         countCol.setPrefWidth(120);
@@ -194,7 +243,7 @@ public class PacketTableView extends Application {
         vbox.setPadding(new Insets(10));
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        vbox.getChildren().addAll(label, controlBar, table);
+        vbox.getChildren().addAll(label, controlBar,filterBar, table);
 
         Scene scene = new Scene(vbox);
         stage.setScene(scene);
@@ -208,7 +257,8 @@ public class PacketTableView extends Application {
             public void handle(long now) {
                 int count = 0;
                 while (!packetQueue.isEmpty() && count < 50) {
-                    table.getItems().add(packetQueue.poll());
+                    // CHANGED: Add to masterData instead of table.getItems()
+                    masterData.add(packetQueue.poll());
                     count++;
                 }
             }
