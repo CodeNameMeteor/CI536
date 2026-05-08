@@ -7,6 +7,7 @@ import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -29,6 +30,7 @@ import javafx.stage.FileChooser;
 import java.io.File;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
@@ -43,12 +45,15 @@ public class PacketTableView extends Application {
 
     @Override
     public void start(Stage stage) {
-        stage.setTitle("Light Sniff");
+        stage.setTitle("Mocha");
         stage.setWidth(1200);
         stage.setHeight(600);
 
 
-        final Label label = new Label("Live Packet Capture");
+        stage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/mocha.png"))));
+
+
+        final Label label = new Label("Mocha");
         label.setFont(new Font("Open Sans", 20));
 
         ComboBox<PcapNetworkInterface> deviceComboBox = new ComboBox<>();
@@ -131,9 +136,11 @@ public class PacketTableView extends Application {
                     return true;
                 } else if (packet.flags() != null && packet.flags().toLowerCase().contains(lowerCaseFilter)) {
                     return true;
+                } else if (packet.appData() != null && packet.appData().toLowerCase().contains(lowerCaseFilter)) {
+                    return true;
+                }else{
+                    return false;
                 }
-
-                return false;
             });
         });
         table.getItems().addListener((ListChangeListener<PacketDetails>) c -> {
@@ -297,14 +304,20 @@ public class PacketTableView extends Application {
                 }
             });
 
-            MenuItem quickFilterItem = new MenuItem("Filter by this IP");
-            quickFilterItem.setOnAction(event -> {
+            MenuItem quickSourceFilterItem = new MenuItem("Filter by Source IP");
+            quickSourceFilterItem.setOnAction(event -> {
                 if (!row.isEmpty() && row.getItem() != null) {
                     searchField.setText(row.getItem().sourceIp());
                 }
             });
+            MenuItem quickDestFilterItem = new MenuItem("Filter by Destination IP");
+            quickDestFilterItem.setOnAction(event -> {
+                if (!row.isEmpty() && row.getItem() != null) {
+                    searchField.setText(row.getItem().destinationIp());
+                }
+            });
 
-            contextMenu.getItems().addAll(copysrcIpItem,copydstIpItem, quickFilterItem);
+            contextMenu.getItems().addAll(copysrcIpItem,copydstIpItem, quickSourceFilterItem,quickDestFilterItem);
 
             row.contextMenuProperty().bind(
                     javafx.beans.binding.Bindings.when(row.emptyProperty())
