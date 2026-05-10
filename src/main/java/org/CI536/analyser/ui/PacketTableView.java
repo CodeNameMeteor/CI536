@@ -115,7 +115,7 @@ public class PacketTableView extends Application {
 
 
         TextField searchField = new TextField();
-        searchField.setPromptText("Filter by IP, Protocol, or Flags...");
+        searchField.setPromptText("Filter by IP, Protocol, or Data...");
         searchField.setPrefWidth(500);
 
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -133,8 +133,6 @@ public class PacketTableView extends Application {
                 } else if (packet.sourceIp() != null && packet.sourceIp().toLowerCase().contains(lowerCaseFilter)) {
                     return true;
                 } else if (packet.destinationIp() != null && packet.destinationIp().toLowerCase().contains(lowerCaseFilter)) {
-                    return true;
-                } else if (packet.flags() != null && packet.flags().toLowerCase().contains(lowerCaseFilter)) {
                     return true;
                 } else if (packet.appData() != null && packet.appData().toLowerCase().contains(lowerCaseFilter)) {
                     return true;
@@ -245,15 +243,12 @@ public class PacketTableView extends Application {
         lengthCol.setCellValueFactory(cellData -> new SimpleObjectProperty<>(cellData.getValue().length()));
         lengthCol.setPrefWidth(80);
 
-        TableColumn<PacketDetails, String> flagsCol = new TableColumn<>("Flags");
-        flagsCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().flags()));
-        flagsCol.setPrefWidth(120);
 
         TableColumn<PacketDetails, String> appDataCol = new TableColumn<>("Data");
         appDataCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().appData()));
         appDataCol.setPrefWidth(120);
 
-        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, flagsCol, appDataCol);
+        table.getColumns().addAll(countCol, timestampCol, srcCol, dstCol, protocolCol, lengthCol, appDataCol);
 
         table.setRowFactory(tv -> {
             TableRow<PacketDetails> row = new TableRow<>() {

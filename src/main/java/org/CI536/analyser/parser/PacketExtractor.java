@@ -55,7 +55,7 @@ public class PacketExtractor {
             if (tcpHeader.getRst()) flags += "RST ";
 
             flags = flags.trim().replace(" ", ", ");
-            if (!flags.isEmpty()) flags = "[" + flags + "]";
+            if (!flags.isEmpty()) flags = "[" + flags + "]"; appData += flags;
 
             if (tcpPacket.getPayload() != null) {
                 byte[] payloadBytes = tcpPacket.getPayload().getRawData();
@@ -79,7 +79,7 @@ public class PacketExtractor {
             int srcPort = udpHeader.getSrcPort().valueAsInt();
             int dstPort = udpHeader.getDstPort().valueAsInt();
 
-            flags = "[SRC: " + srcPort + ", DST: " + dstPort + "]";
+            appData = "[SRC: " + srcPort + ", DST: " + dstPort + "]";
 
             if (srcPort == 53 || dstPort == 53) {
                 protocol = "DNS";
@@ -101,11 +101,11 @@ public class PacketExtractor {
 
                     if (cleanDns.startsWith(".")) cleanDns = cleanDns.substring(1);
 
-                    appData = "Query: " + cleanDns;
+                    appData += " Query: " + cleanDns;
                 }
             }
         }
 
-        return new PacketDetails(packetNumber, timeStr, srcAddr, dstAddr, protocol, length, flags, appData);
+        return new PacketDetails(packetNumber, timeStr, srcAddr, dstAddr, protocol, length, appData);
     }
 }
