@@ -42,11 +42,46 @@ public class PacketExtractor {
             int dstPort = tcpHeader.getDstPort().valueAsInt();
 
             if (srcPort == 443 || dstPort == 443) {
-                protocol = "HTTPS";
+
+                if (tcpPacket.getPayload() != null) {
+                    byte[] payloadBytes = tcpPacket.getPayload().getRawData();
+
+                    // Identify TLS type based on the first byte of the payload
+                    if (payloadBytes.length > 0) {
+                        int tlsType = payloadBytes[0] & 0xFF; // Convert byte to positive integer
+
+                        if (tlsType == 22) { // 0x16 = Handshake
+                            protocol = "TLSv1.2/1.3";
+
+                            String sni = extractSniFromTls(payloadBytes);
+                            if (sni != null && !sni.isEmpty()) {
+                                appData = "Client Hello (SNI: " + sni + ")";
+                            } else {
+                                appData = "TLS Handshake Message";
+                            }
+                        }
+                        else if (tlsType == 23) { // 0x17 = Application Data
+                            protocol = "HTTPS";
+                            appData = "Encrypted Application Data";
+                        }
+                        else if (tlsType == 21) { // 0x15 = Alert
+                            protocol = "TLS Alert";
+                            appData = "Encrypted Alert / Teardown";
+                        }
+                        else {
+                            protocol = "TLS / HTTPS"; // Fallback
+                            appData = "Encrypted Data";
+                        }
+                    }
+                } else {
+                    // If there is no payload, it's just a TCP ACK packet for the HTTPS connection
+                    protocol = "TCP";
+                }
+
             } else if (srcPort == 80 || dstPort == 80) {
                 protocol = "HTTP";
             }
-            appData += tcpHeader.getSrcPort().valueAsString() + " > " + tcpHeader.getDstPort().valueAsString();
+            appData += " " + tcpHeader.getSrcPort().valueAsString() + " > " + tcpHeader.getDstPort().valueAsString();
 
             if (tcpHeader.getSyn()) flags += "SYN ";
             if (tcpHeader.getAck()) flags += "ACK ";
@@ -107,5 +142,52 @@ public class PacketExtractor {
         }
 
         return new PacketDetails(packetNumber, timeStr, srcAddr, dstAddr, protocol, length, appData);
+    }
+
+    private static String extractSniFromTls(byte[] payload) {
+        try {
+            //Ensure it's a TLS Handshake (0x16) and Client Hello (0x01)
+            if (payload.length < 43 || payload[0] != 0x16 || payload[5] != 0x01) {
+                return null;
+            }
+
+            // Hop over the fixed-length headers (Record, Handshake, Random)
+            int offset = 43;
+
+            // Hop over Session ID
+            int sessionIdLen = payload[offset] & 0xFF;
+            offset += 1 + sessionIdLen;
+
+            // Hop over Cipher Suites
+            int cipherLen = ((payload[offset] & 0xFF) << 8) | (payload[offset + 1] & 0xFF);
+            offset += 2 + cipherLen;
+
+            // Hop over Compression Methods
+            int compLen = payload[offset] & 0xFF;
+            offset += 1 + compLen;
+
+            int extTotalLen = ((payload[offset] & 0xFF) << 8) | (payload[offset + 1] & 0xFF);
+            offset += 2;
+            int limit = Math.min(offset + extTotalLen, payload.length);
+
+            while (offset + 4 <= limit) {
+                int extType = ((payload[offset] & 0xFF) << 8) | (payload[offset + 1] & 0xFF);
+                int extLen = ((payload[offset + 2] & 0xFF) << 8) | (payload[offset + 3] & 0xFF);
+                offset += 4;
+
+                if (extType == 0x0000 && offset + 5 < payload.length) { // Found SNI!
+                    // Skip list length and type, grab the actual string length
+                    int sniLen = ((payload[offset + 3] & 0xFF) << 8) | (payload[offset + 4] & 0xFF);
+
+                    // Convert those specific bytes into a readable String
+                    byte[] sniBytes = java.util.Arrays.copyOfRange(payload, offset + 5, offset + 5 + sniLen);
+                    return new String(sniBytes);
+                }
+                offset += extLen;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        return null;
     }
 }
