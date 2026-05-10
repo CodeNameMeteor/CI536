@@ -46,6 +46,7 @@ public class PacketExtractor {
             } else if (srcPort == 80 || dstPort == 80) {
                 protocol = "HTTP";
             }
+            appData += tcpHeader.getSrcPort().valueAsString() + " > " + tcpHeader.getDstPort().valueAsString();
 
             if (tcpHeader.getSyn()) flags += "SYN ";
             if (tcpHeader.getAck()) flags += "ACK ";
