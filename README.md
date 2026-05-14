@@ -9,7 +9,7 @@ Mocha is a Lightweight Packet Sniffer and Analyzer. Built in Java using Pcap4j. 
 * **IDE:** IntelliJ IDEA
 * **Testing:** JUnit 5
 
-WARNING using this tool on a network that you do not own, or do not have the permission to capture analyse network packets may lead to criminal charges.
+WARNING using this tool on a network that you do not own, or do not have explicit authorisation to monitor, may lead to criminal charges.
   
 
 
